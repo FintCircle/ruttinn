@@ -425,13 +425,22 @@ class D1Store {
     // 1. Initial Categories (Admin Configured)
     const seedCategories: D1Category[] = [
       {
+        id: 'cat_love',
+        name: 'Love & Relationships',
+        description: 'First kisses, missed connections, heartbreak, and unexpected tenderness',
+        icon: '❤️',
+        color: '#f43f5e',
+        is_active: 1,
+        created_at: 1700000000000,
+      },
+      {
         id: 'cat_street_wisdom',
         name: 'Street Wisdom',
         description: 'Hard-earned life lessons and spontaneous advice from passersby',
         icon: 'Sparkles',
         color: '#f59e0b',
         is_active: 1,
-        created_at: 1700000000000,
+        created_at: 1700000001000,
       },
       {
         id: 'cat_late_night',
@@ -440,7 +449,7 @@ class D1Store {
         icon: 'Moon',
         color: '#6366f1',
         is_active: 1,
-        created_at: 1700000001000,
+        created_at: 1700000002000,
       },
       {
         id: 'cat_unpopular',
@@ -448,15 +457,6 @@ class D1Store {
         description: 'Spicy, contrarian takes spoken with true conviction',
         icon: 'Flame',
         color: '#ef4444',
-        is_active: 1,
-        created_at: 1700000002000,
-      },
-      {
-        id: 'cat_love',
-        name: 'Love & Strangers',
-        description: 'First kisses, missed connections, heartbreak, and unexpected tenderness',
-        icon: 'Heart',
-        color: '#ec4899',
         is_active: 1,
         created_at: 1700000003000,
       },
@@ -484,6 +484,15 @@ class D1Store {
 
     // 2. Initial Users
     const seedUsers: D1User[] = [
+      {
+        firebase_uid: 'usr_maya_r',
+        email: 'maya.r@scruttin.fm',
+        display_name: 'Maya R.',
+        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
+        bio: 'Walking and listening to the city pulse.',
+        created_at: 1700000500000,
+        last_active: Date.now(),
+      },
       {
         firebase_uid: 'usr_elena_berlin',
         email: 'elena.b@scruttin.fm',
@@ -526,6 +535,15 @@ class D1Store {
 
     // 3. Initial Questions
     const seedQuestions: D1Question[] = [
+      {
+        id: 'q_stranger_love',
+        title: 'Have you ever fallen in love with a complete stranger? What happened?',
+        category_id: 'cat_love',
+        author_uid: 'usr_maya_r',
+        author_name: 'Maya R.',
+        created_at: 1701300000000,
+        answer_count: 3,
+      },
       {
         id: 'q_secret_crossroads',
         title: 'What is a decision you made in under five seconds that completely altered your life?',
@@ -577,6 +595,26 @@ class D1Store {
 
     // 4. Initial Authentic Voice Ruts (Realistic Street Voice recordings with waveforms)
     const seedRuts: D1Rut[] = [
+      {
+        id: 'rut_maya_stranger',
+        question_id: 'q_stranger_love',
+        author_uid: 'usr_maya_r',
+        author_name: 'Maya R.',
+        author_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
+        caption: 'On the 8 AM train between Florence and Bologna. We shared half a mandarin orange.',
+        media_key: 'seed/voice_maya_stranger.mp3',
+        duration_seconds: 87, // 1:27 rut
+        waveform_data: [
+          0.18, 0.35, 0.52, 0.76, 0.89, 0.65, 0.42, 0.71, 0.94, 0.82, 
+          0.58, 0.74, 0.88, 0.98, 0.67, 0.45, 0.78, 0.91, 0.86, 0.59,
+          0.34, 0.62, 0.81, 0.95, 0.72, 0.48, 0.66, 0.84, 0.92, 0.71,
+          0.44, 0.63, 0.79, 0.88, 0.74, 0.52, 0.38, 0.61, 0.77, 0.53,
+          0.36, 0.48, 0.41, 0.29, 0.22, 0.16, 0.11, 0.05
+        ],
+        likes_count: 2840, // 2.8K
+        reports_count: 0,
+        created_at: Date.now() - 3600000 * 1,
+      },
       {
         id: 'rut_berlin_rain',
         question_id: 'q_secret_crossroads',

@@ -11,6 +11,14 @@ interface AuthModalProps {
 
 const PRESET_PERSONAS = [
   {
+    uid: 'usr_maya_r',
+    name: 'Maya R.',
+    email: 'maya.r@scruttin.fm',
+    city: 'Florence',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
+    bio: 'Walking and listening to the city pulse',
+  },
+  {
     uid: 'usr_marcus_ny',
     name: 'Marcus Reed',
     email: 'marcus.sound@scruttin.fm',

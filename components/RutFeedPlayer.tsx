@@ -29,6 +29,9 @@ import {
   MessageSquare,
   LayoutTemplate,
   ChevronUp,
+  Radio,
+  Search,
+  Users,
 } from 'lucide-react';
 import type { D1Rut, D1Question, D1Category } from '@/lib/d1-database';
 import { useAuth } from '@/lib/auth-context';
@@ -190,7 +193,7 @@ export function RutFeedPlayer() {
 
     const waveform = currentRut.waveform_data && currentRut.waveform_data.length > 0
       ? currentRut.waveform_data
-      : Array.from({ length: 48 }, () => 0.4);
+      : Array.from({ length: 40 }, () => 0.35);
 
     const progress = duration > 0 ? currentTime / duration : 0;
     const width = canvas.width;
@@ -198,30 +201,31 @@ export function RutFeedPlayer() {
     ctx.clearRect(0, 0, width, height);
 
     const barCount = waveform.length;
-    const barWidth = width / barCount - 2;
+    const barWidth = 4;
+    const gap = 3.5;
+    const totalContentWidth = barCount * (barWidth + gap) - gap;
+    const startX = Math.max(0, (width - totalContentWidth) / 2);
 
     for (let i = 0; i < barCount; i++) {
-      const x = i * (barWidth + 2);
+      const x = startX + i * (barWidth + gap);
       const amp = waveform[i];
-      const barHeight = Math.max(8, amp * (height - 12));
+      const barHeight = Math.max(6, amp * (height - 8));
       const y = (height - barHeight) / 2;
 
       const isPassed = i / barCount <= progress;
 
-      // Color logic: accent color for played portion
       if (isPassed) {
-        ctx.fillStyle = palette.accentColor || '#f59e0b';
+        ctx.fillStyle = '#ffffff';
       } else {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.32)';
       }
 
       ctx.beginPath();
-      // Rounded bar
       const radius = 2;
       ctx.roundRect(x, y, barWidth, barHeight, radius);
       ctx.fill();
     }
-  }, [currentTime, duration, currentRut, palette.accentColor]);
+  }, [currentTime, duration, currentRut]);
 
   // Ephemeral Rule Execution:
   // "Plus once one listens to a rut they can't access it again once they swipe to next."
@@ -417,24 +421,20 @@ export function RutFeedPlayer() {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
+  const formatCount = (count: number) => {
+    if (count >= 1000) {
+      return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+    }
+    return count.toString();
+  };
+
   return (
     <div
       ref={containerRef}
       id="scruttin-player-root"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
-      className={`relative w-full h-screen h-[100dvh] overflow-hidden flex flex-col justify-between select-none ${fontClass} ${
-        customImageUrl ? '' : `bg-gradient-to-b ${palette.bgGradient}`
-      }`}
-      style={
-        customImageUrl
-          ? {
-              backgroundImage: `linear-gradient(rgba(10, 10, 14, 0.82), rgba(10, 10, 14, 0.92)), url(${customImageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }
-          : {}
-      }
+      className={`relative w-full h-screen h-[100dvh] overflow-hidden flex flex-col justify-between select-none bg-black text-white ${fontClass}`}
     >
       {/* Hidden Native Audio Element */}
       <audio
@@ -453,129 +453,65 @@ export function RutFeedPlayer() {
           setIsPlaying(false);
           musicEngine.unduck();
           setIsDuckingActive(false);
-          // Optional: smoothly swipe to next or stay
         }}
       />
 
-      {/* ================= TOP NAVIGATION BAR ================= */}
-      <header className="z-30 w-full px-4 pt-4 pb-2 flex items-center justify-between backdrop-blur-sm">
-        {/* Brand & Tagline */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-amber-500 text-zinc-950 flex items-center justify-center font-bold text-base shadow-lg shadow-amber-500/20">
-            S
-          </div>
-          <div>
-            <span className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              Scruttin
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                VOICE
-              </span>
+      {/* ================= TOP HEADER (MATCHING SCREENSHOT) ================= */}
+      <header className="z-30 w-full max-w-md mx-auto px-5 pt-3 pb-1 flex items-center justify-between">
+        {/* Brand: scruttin in bold orange */}
+        <span className="font-extrabold text-xl tracking-tight text-amber-500 lowercase select-none">
+          scruttin
+        </span>
+
+        {/* Right Controls: ll muted + count */}
+        <div className="flex items-center gap-3">
+          <button
+            id="toggle-voice-mute-btn"
+            onClick={() => {
+              const nextMuted = !isMuted;
+              setIsMuted(nextMuted);
+              if (audioElementRef.current) {
+                audioElementRef.current.volume = nextMuted ? 0 : volume;
+              }
+            }}
+            className="px-2.5 py-1 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center gap-1.5 text-zinc-400 text-xs font-mono transition-colors cursor-pointer"
+            title={isMuted ? 'Unmute voice' : 'Mute voice'}
+          >
+            <span className="flex items-end gap-0.5 h-3">
+              <span
+                className={`w-0.5 bg-zinc-400 rounded-full transition-all ${
+                  !isMuted && isPlaying ? 'h-2 animate-pulse' : 'h-1.5'
+                }`}
+              />
+              <span
+                className={`w-0.5 bg-zinc-400 rounded-full transition-all ${
+                  !isMuted && isPlaying ? 'h-3 animate-pulse delay-75' : 'h-3'
+                }`}
+              />
+              <span
+                className={`w-0.5 bg-zinc-400 rounded-full transition-all ${
+                  !isMuted && isPlaying ? 'h-2 animate-pulse delay-150' : 'h-2'
+                }`}
+              />
             </span>
-          </div>
-        </div>
-
-        {/* Global Toolbar Controls */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Questions Explorer */}
-          <button
-            id="open-questions-sheet-btn"
-            onClick={() => setIsQuestionsOpen(true)}
-            className="px-3 py-1.5 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95"
-            title="Browse street questions & prompts"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Prompts</span>
+            <span>{isMuted ? 'muted' : 'sound'}</span>
           </button>
 
-          {/* Audio & Ducking Settings */}
-          <button
-            id="open-audio-settings-btn"
-            onClick={() => setIsAudioSettingsOpen(true)}
-            className="relative p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs transition-all active:scale-95"
-            title="Background music & ducking controls"
-          >
-            <Music className="w-4 h-4 text-amber-400" />
-            {isDuckingActive && (
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-            )}
-          </button>
-
-          {/* Theme & Display Customizer */}
-          <button
-            id="open-theme-customizer-btn"
-            onClick={() => setIsThemeOpen(true)}
-            className="p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs transition-all active:scale-95"
-            title="Custom background and fonts"
-          >
-            <Palette className="w-4 h-4 text-sky-400" />
-          </button>
-
-          {/* Activity Notifications */}
-          <button
-            id="open-notifications-btn"
-            onClick={() => setIsNotificationsOpen(true)}
-            className="p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs transition-all active:scale-95"
-            title="Activity alerts"
-          >
-            <Bell className="w-4 h-4 text-zinc-300" />
-          </button>
-
-          {/* Profile / Account */}
-          <button
-            id="open-auth-modal-btn"
-            onClick={() => setIsAuthOpen(true)}
-            className="p-1 rounded-full border border-zinc-700 hover:border-amber-400 transition-all active:scale-95"
-            title="Profile & Firebase Identity"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.firebase_uid || 'guest'}`}
-              alt={user?.display_name || 'User'}
-              className="w-7 h-7 rounded-full object-cover"
-            />
-          </button>
+          <span className="text-xs font-mono text-zinc-500">
+            {ruts.length > 0 ? `${currentIndex + 1} / ${ruts.length}` : '1 / 1'}
+          </span>
         </div>
       </header>
 
-      {/* Category Filter Chips Bar */}
-      <div className="z-20 px-4 py-1.5 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-        <button
-          id="feed-category-all"
-          onClick={() => setSelectedCategory('all')}
-          className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-            selectedCategory === 'all'
-              ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
-              : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 border border-zinc-800'
-          }`}
-        >
-          All Corners
-        </button>
-        {categories.map((c) => (
-          <button
-            key={c.id}
-            id={`feed-category-${c.id}`}
-            onClick={() => setSelectedCategory(c.id)}
-            className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 ${
-              selectedCategory === c.id
-                ? 'bg-amber-500 text-zinc-950 font-bold shadow-sm'
-                : 'bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 border border-zinc-800'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: c.color || '#f59e0b' }} />
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      {/* ================= MAIN FULL-SCREEN AUDIO PLAYER CANVAS ================= */}
-      <main className="relative flex-1 flex flex-col justify-between items-center px-4 sm:px-6 max-w-2xl mx-auto w-full overflow-hidden select-none">
+      {/* ================= MAIN PLAYER CANVAS ================= */}
+      <main className="relative flex-1 flex flex-col justify-between px-5 py-2 max-w-md mx-auto w-full overflow-hidden select-none">
         {isLoadingFeed ? (
           <div className="flex-1 flex flex-col items-center justify-center space-y-3 text-zinc-400">
-            <div className="w-12 h-12 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+            <div className="w-10 h-10 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
             <p className="text-xs font-mono">Tuning street frequency...</p>
           </div>
         ) : !currentRut ? (
-          /* Empty Feed / All Ruts Heard state */
+          /* Empty Feed / All Heard State */
           <div
             id="empty-feed-card"
             className="my-auto w-full p-8 rounded-3xl bg-zinc-900/90 border border-zinc-800 text-center space-y-5 shadow-2xl backdrop-blur-xl animate-in zoom-in-95 duration-300"
@@ -599,7 +535,7 @@ export function RutFeedPlayer() {
                   setRecorderInitialQuestion(null);
                   setIsRecorderOpen(true);
                 }}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
               >
                 <Mic className="w-4 h-4" />
                 Record a New Voice Rut
@@ -608,7 +544,7 @@ export function RutFeedPlayer() {
               <button
                 id="reset-listened-feed-btn"
                 onClick={handleResetListened}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center justify-center gap-2 transition-colors"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Rediscover Past Voices
@@ -616,221 +552,167 @@ export function RutFeedPlayer() {
             </div>
           </div>
         ) : (
-          /* Active Single Rut Player */
-          <div className="relative w-full h-full flex flex-col justify-between items-center pt-2 pb-5">
-            {/* Center Area: Lifted Profile Image with Centered Ring Ripples */}
-            <div className="relative flex-1 flex flex-col items-center justify-center w-full -translate-y-3 sm:-translate-y-6">
-              {/* Concentric Voice Ring Ripples originating directly from user profile image */}
-              <div className="relative flex items-center justify-center">
-                {/* Voice ripples radiating outward from user profile image */}
-                {isPlaying ? (
-                  <>
-                    <span className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full border border-amber-400/50 animate-ping pointer-events-none" />
-                    <span className="absolute w-36 h-36 sm:w-48 sm:h-48 rounded-full border-2 border-amber-500/40 animate-voice-ripple pointer-events-none" />
-                    <span
-                      className="absolute w-48 h-48 sm:w-64 sm:h-64 rounded-full border border-amber-500/25 animate-voice-ripple pointer-events-none"
-                      style={{ animationDelay: '0.6s' }}
-                    />
-                    <span
-                      className="absolute w-60 h-60 sm:w-80 sm:h-80 rounded-full border border-amber-500/10 animate-voice-ripple pointer-events-none"
-                      style={{ animationDelay: '1.2s' }}
-                    />
-                  </>
-                ) : (
-                  <span className="absolute w-28 h-28 sm:w-36 sm:h-36 rounded-full border border-zinc-700/40 opacity-40 pointer-events-none scale-95" />
-                )}
-
-                {/* Centered User Profile Image */}
-                <div
-                  id="center-avatar-container"
-                  className="relative z-10 cursor-pointer group select-none"
-                  onClick={togglePlayPause}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={
-                      currentRut.author_avatar ||
-                      `https://api.dicebear.com/7.x/bottts/svg?seed=${currentRut.author_uid}`
-                    }
-                    alt={currentRut.author_name}
-                    className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover border-4 border-zinc-900 shadow-2xl transition-transform group-hover:scale-105"
-                  />
-                  <button
-                    id="center-play-toggle-btn"
-                    className={`absolute inset-0 m-auto w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center backdrop-blur-md transition-all ${
-                      isPlaying
-                        ? 'bg-black/35 text-white opacity-0 group-hover:opacity-100'
-                        : 'bg-amber-500 text-zinc-950 opacity-100 shadow-xl shadow-amber-500/40'
-                    }`}
-                    aria-label={isPlaying ? 'Pause Rut' : 'Play Rut'}
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
-                    ) : (
-                      <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-0.5" />
-                    )}
-                  </button>
-                </div>
+          /* Active Single Rut Player (Exact Layout from Attached Screenshot) */
+          <>
+            {/* Top Question Section */}
+            <div className="w-full text-left space-y-1 mt-1 pr-14">
+              {/* Category Tag */}
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-rose-400">
+                <span>{currentRut.category_id === 'cat_love' ? '❤️' : '🎙️'}</span>
+                <span>{currentRut.category_name || 'Love & Relationships'}</span>
               </div>
 
-              {/* Dynamic Waveform Visualizer Canvas below avatar */}
-              <div className="w-full max-w-xs sm:max-w-md h-9 sm:h-11 mt-4 px-4 flex items-center justify-center z-10">
-                <canvas
-                  ref={waveformCanvasRef}
-                  width={360}
-                  height={44}
-                  className="w-full h-full cursor-pointer"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const ratio = (e.clientX - rect.left) / rect.width;
-                    const newTime = ratio * duration;
-                    setCurrentTime(newTime);
-                    if (audioElementRef.current) audioElementRef.current.currentTime = newTime;
-                  }}
-                />
-              </div>
+              {/* QUESTION label */}
+              <p className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase mt-2">
+                QUESTION
+              </p>
 
-              {/* Speech Ducking Live Indicator */}
-              <div className="mt-2.5 flex items-center gap-2 z-10">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono tracking-wider transition-colors ${
-                    isDuckingActive
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      : 'bg-zinc-800/40 text-zinc-500 border border-zinc-800'
-                  }`}
-                >
-                  <Music className="w-3 h-3" />
-                  {isDuckingActive ? 'MUSIC DUCKED (VOICE ACTIVE)' : 'AMBIENT READY'}
-                </span>
-              </div>
+              {/* Question Heading */}
+              <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight leading-snug mt-1">
+                &ldquo;{currentRut.question_title}&rdquo;
+              </h1>
             </div>
 
-            {/* Right Side Vertical Action Rail (TikTok Style, pinned bottom-right) */}
-            <div className="absolute right-2 sm:right-4 bottom-24 sm:bottom-28 flex flex-col items-center gap-3.5 z-30">
+            {/* Center Speaker Avatar with Play Button & Info */}
+            <div className="relative flex-1 flex flex-col items-center justify-center my-auto">
+              {/* Avatar Container with Ripple rings */}
+              <div
+                id="center-avatar-container"
+                className="relative cursor-pointer group"
+                onClick={togglePlayPause}
+              >
+                {/* Concentric voice ripples radiating when audio is playing */}
+                {isPlaying && (
+                  <>
+                    <span className="absolute -inset-2 rounded-full border border-amber-400/40 animate-ping pointer-events-none" />
+                    <span className="absolute -inset-4 rounded-full border border-amber-500/25 animate-voice-ripple pointer-events-none" />
+                    <span
+                      className="absolute -inset-7 rounded-full border border-amber-500/15 animate-voice-ripple pointer-events-none"
+                      style={{ animationDelay: '0.7s' }}
+                    />
+                  </>
+                )}
+
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={
+                    currentRut.author_avatar ||
+                    `https://api.dicebear.com/7.x/bottts/svg?seed=${currentRut.author_uid}`
+                  }
+                  alt={currentRut.author_name}
+                  className="w-32 h-32 sm:w-36 sm:h-36 rounded-full object-cover border border-zinc-800 shadow-2xl transition-transform group-hover:scale-102"
+                />
+
+                {/* Center play triangle overlay button */}
+                <button
+                  id="center-play-toggle-btn"
+                  className="absolute inset-0 m-auto w-12 h-12 rounded-full bg-black/40 backdrop-blur-xs flex items-center justify-center text-white transition-all group-hover:bg-black/55 shadow-lg cursor-pointer"
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPlaying ? (
+                    <Pause className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Speaker Name */}
+              <h2 className="text-base sm:text-lg font-bold text-white mt-3.5 tracking-tight text-center">
+                {currentRut.author_name}
+              </h2>
+
+              {/* Rut Duration */}
+              <p className="text-xs text-zinc-400 font-mono mt-0.5 text-center">
+                {formatTime(duration || currentRut.duration_seconds)} rut
+              </p>
+
+              {/* Pill: 2 more answered */}
+              <button
+                id="more-answered-pill"
+                onClick={() => setIsQuestionsOpen(true)}
+                className="mt-3 px-3.5 py-1.5 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 text-xs text-zinc-300 flex items-center gap-2 shadow-sm transition-all active:scale-95 cursor-pointer"
+              >
+                <div className="flex -space-x-1.5 overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&auto=format&fit=crop&q=80"
+                    alt="User"
+                    className="inline-block w-4 h-4 rounded-full ring-1 ring-zinc-900 object-cover"
+                  />
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&auto=format&fit=crop&q=80"
+                    alt="User"
+                    className="inline-block w-4 h-4 rounded-full ring-1 ring-zinc-900 object-cover"
+                  />
+                </div>
+                <Users className="w-3.5 h-3.5 text-zinc-400" />
+                <span className="text-[11px] font-medium">2 more answered</span>
+              </button>
+            </div>
+
+            {/* Right Side Vertical Action Rail */}
+            <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/10 flex flex-col items-center gap-4 z-30">
               {/* Like Button */}
-              <div className="flex flex-col items-center gap-0.5">
+              <div className="flex flex-col items-center gap-1">
                 <button
                   id="like-rut-btn"
                   onClick={handleToggleLike}
-                  className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all ${
-                    currentRut.user_liked
-                      ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
-                      : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/80 backdrop-blur-md'
-                  } ${likeAnimation ? 'scale-125' : 'scale-100'}`}
-                  title="Like voice Rut"
+                  className="relative w-12 h-12 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer overflow-hidden"
+                  title="Like Rut"
                 >
                   <Heart
-                    className={`w-5 h-5 ${currentRut.user_liked ? 'fill-white' : 'stroke-current'}`}
+                    className={`w-5 h-5 ${
+                      currentRut.user_liked ? 'fill-rose-500 text-rose-500' : 'text-zinc-200'
+                    }`}
                   />
+                  {/* Orange accent bar on the right edge */}
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-amber-500 rounded-l" />
                 </button>
-                <span className="text-[10px] font-mono text-zinc-300 font-semibold">{currentRut.likes_count}</span>
+                <span className="text-xs font-mono text-zinc-400">
+                  {formatCount(currentRut.likes_count)}
+                </span>
               </div>
 
-              {/* Answer Prompt / Record Rut Shortcut */}
-              <div className="flex flex-col items-center gap-0.5">
+              {/* Answers / Comments Button with Badge 3 */}
+              <div className="flex flex-col items-center gap-1">
                 <button
-                  id="record-rut-shortcut-btn"
-                  onClick={handleAnswerCurrentQuestion}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center justify-center shadow-lg shadow-amber-500/25 transition-transform active:scale-95"
-                  title="Record your own Rut for this question"
+                  id="comments-rut-btn"
+                  onClick={() => setIsQuestionsOpen(true)}
+                  className="relative w-12 h-12 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer"
+                  title="View responses"
                 >
-                  <Mic className="w-5 h-5" />
+                  <MessageSquare className="w-5 h-5 text-zinc-200" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-zinc-950 text-[10px] font-bold flex items-center justify-center">
+                    3
+                  </span>
                 </button>
-                <span className="text-[9px] font-medium text-amber-300">Answer</span>
+                <span className="text-xs font-mono text-zinc-400">134</span>
               </div>
 
-              {/* Next Rut (Swipe Up / Tap) */}
-              <div className="flex flex-col items-center gap-0.5">
-                <button
-                  id="swipe-next-rut-btn"
-                  onClick={goToNextRut}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/80 backdrop-blur-md flex items-center justify-center transition-transform active:scale-95"
-                  title="Next stranger's voice (or swipe up)"
-                >
-                  <ChevronUp className="w-5 h-5" />
-                </button>
-                <span className="text-[9px] text-zinc-400">Next</span>
-              </div>
-
-              {/* Share Rut */}
-              <div className="flex flex-col items-center gap-0.5">
+              {/* Share Button */}
+              <div className="flex flex-col items-center gap-1">
                 <button
                   id="share-rut-btn"
                   onClick={handleShare}
-                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/80 backdrop-blur-md flex items-center justify-center transition-transform active:scale-95"
-                  title="Share Rut link"
+                  className="w-12 h-12 rounded-full bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 flex items-center justify-center text-white transition-all active:scale-95 cursor-pointer"
+                  title="Share Rut"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <Share2 className="w-5 h-5 text-zinc-200" />
                 </button>
-                <span className="text-[9px] text-zinc-400">Share</span>
-              </div>
-
-              {/* Report Rut */}
-              <div className="flex flex-col items-center gap-0.5">
-                <button
-                  id="report-rut-btn"
-                  onClick={() => setIsReportOpen(true)}
-                  className="w-8 h-8 rounded-full bg-zinc-950/60 hover:bg-rose-950/40 text-zinc-400 hover:text-rose-400 border border-zinc-800 flex items-center justify-center transition-colors"
-                  title="Report inappropriate Rut"
-                >
-                  <Flag className="w-3.5 h-3.5" />
-                </button>
+                <span className="text-xs font-mono text-zinc-400">89</span>
               </div>
             </div>
 
-            {/* ================= QUESTION DISPLAY AT THE BOTTOM (NO CARD) ================= */}
-            <div
-              id="rut-question-bottom"
-              className="w-full text-left pr-14 sm:pr-16 z-20 space-y-1.5"
-            >
-              {/* Category & Ephemeral Tag */}
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-400">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  {currentRut.category_name || 'Street Inquiry'}
-                </span>
-                <span className="text-zinc-500 text-xs">•</span>
-                <span className="text-[11px] font-mono text-zinc-400">Single listen</span>
-              </div>
-
-              {/* The Question Text (No card container, clean high-contrast display typography) */}
-              <h1 className="text-lg sm:text-2xl font-extrabold text-zinc-100 tracking-tight leading-snug drop-shadow-md">
-                &ldquo;{currentRut.question_title}&rdquo;
-              </h1>
-
-              {/* Speaker Attribution & Caption */}
-              <div className="flex items-center gap-2 text-xs text-zinc-300">
-                <span className="font-bold text-amber-200/95">@{currentRut.author_name}</span>
-                {currentRut.caption && (
-                  <>
-                    <span className="text-zinc-500">•</span>
-                    <p className="italic text-zinc-400 truncate max-w-xs sm:max-w-md">
-                      &ldquo;{currentRut.caption}&rdquo;
-                    </p>
-                  </>
-                )}
-              </div>
-
-              {/* Direct Quick Answer Button */}
-              <div className="pt-1 flex items-center gap-3">
-                <button
-                  id="answer-current-prompt-btn"
-                  onClick={handleAnswerCurrentQuestion}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold transition-transform active:scale-95 shadow-md shadow-amber-500/20"
-                >
-                  <Mic className="w-3.5 h-3.5" />
-                  <span>Answer this Prompt</span>
-                </button>
-
-                <span className="text-[11px] font-mono text-zinc-500">
-                  Swipe up for next voice ↑
-                </span>
-              </div>
-
-              {/* Minimal Scrubber Line at the very bottom */}
-              <div className="pt-2 w-full">
-                <div
-                  id="rut-seek-slider"
+            {/* Waveform & Scrubber Section */}
+            <div className="w-full pb-3 space-y-1.5">
+              <div className="w-full h-11 flex items-center justify-center px-1">
+                <canvas
+                  ref={waveformCanvasRef}
+                  width={340}
+                  height={44}
+                  className="w-full h-full cursor-pointer"
                   onClick={(e) => {
                     if (!duration || !audioElementRef.current) return;
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -839,23 +721,75 @@ export function RutFeedPlayer() {
                     setCurrentTime(newTime);
                     audioElementRef.current.currentTime = newTime;
                   }}
-                  className="w-full h-1 bg-white/10 hover:h-2 transition-all cursor-pointer relative rounded-full overflow-hidden"
-                  title="Click to seek"
+                />
+              </div>
+
+              {/* Time & NEXT RUT Hint */}
+              <div className="flex items-center justify-between text-xs font-mono text-zinc-500 px-1">
+                <span>{formatTime(currentTime)}</span>
+                <button
+                  id="next-rut-hint-btn"
+                  onClick={goToNextRut}
+                  className="flex flex-col items-center text-zinc-500 hover:text-zinc-300 transition-colors group cursor-pointer"
                 >
-                  <div
-                    className="h-full bg-amber-500 rounded-full transition-all"
-                    style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] font-mono text-zinc-400 mt-1 px-0.5">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
+                  <ChevronUp className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform" />
+                  <span className="text-[9px] font-bold tracking-widest text-zinc-500 uppercase">
+                    NEXT RUT
+                  </span>
+                </button>
+                <span>{formatTime(duration || currentRut.duration_seconds)}</span>
               </div>
             </div>
-          </div>
+          </>
         )}
       </main>
+
+      {/* ================= FIXED BOTTOM NAVIGATION BAR ================= */}
+      <footer className="z-40 w-full bg-black border-t border-zinc-900 px-6 py-2 select-none">
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          {/* Stream Tab (Active) */}
+          <button
+            id="nav-stream-tab"
+            onClick={() => fetchFeed(selectedCategory)}
+            className="flex flex-col items-center cursor-pointer"
+          >
+            <div className="w-13 h-8.5 rounded-2xl bg-amber-500 flex items-center justify-center text-zinc-950 shadow-md shadow-amber-500/20">
+              <Radio className="w-4 h-4 stroke-[2.5]" />
+            </div>
+            <span className="text-[10px] font-bold text-amber-500 mt-1">Stream</span>
+          </button>
+
+          {/* Questions Tab */}
+          <button
+            id="nav-questions-tab"
+            onClick={() => setIsQuestionsOpen(true)}
+            className="flex flex-col items-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+          >
+            <Search className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Questions</span>
+          </button>
+
+          {/* Center Floating Mic Record Button */}
+          <button
+            id="nav-record-btn"
+            onClick={handleAnswerCurrentQuestion}
+            className="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 flex items-center justify-center shadow-lg shadow-amber-500/30 active:scale-95 transition-all -translate-y-1 cursor-pointer"
+            title="Record your voice Rut"
+          >
+            <Mic className="w-5 h-5 stroke-[2.5]" />
+          </button>
+
+          {/* Profile Tab */}
+          <button
+            id="nav-profile-tab"
+            onClick={() => setIsAuthOpen(true)}
+            className="flex flex-col items-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+          >
+            <User className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Profile</span>
+          </button>
+        </div>
+      </footer>
 
       {/* Share Toast */}
       {shareToast && (
