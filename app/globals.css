@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-editorial: "Georgia", "Cambria", "Times New Roman", serif;
+    --font-grotesque: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --font-display: "Trebuchet MS", "Impact", -apple-system, sans-serif;
+    --font-storyteller: "Courier New", "Menlo", "Consolas", monospace;
+  }
+}
+
+.font-editorial {
+  font-family: var(--font-editorial);
+}
+
+.font-grotesque {
+  font-family: var(--font-grotesque);
+}
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.font-storyteller {
+  font-family: var(--font-storyteller);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Pulse sound ring */
+@keyframes voice-ripple {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-voice-ripple {
+  animation: voice-ripple 2.4s ease-in-out infinite;
+}
+

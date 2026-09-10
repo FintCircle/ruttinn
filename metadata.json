@@ -1,0 +1,10 @@
+{
+  "name": "Scruttin",
+  "description": "Authentic, short-form audio storytelling platform with voluntary voice street interviews swiped one Rut at a time.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
